@@ -6,7 +6,7 @@ from google.genai import types
 from dotenv import load_dotenv
 from config import NAMES_TO_IGNORE, PATTERNS_TO_IGNORE, CONTEXT_LINES, MAX_FILES_IN_REPORT
 import ast
-import importlib
+import importlib.util
 
 app = typer.Typer(help="ReVibe: a CLI-based assistant to revive old projects!")
 
@@ -116,24 +116,24 @@ def build_mini_reports(base_dir: str, flagged: list[dict]) -> list[dict]:
         reports.append(entry)
     return reports
 
-def generate_plan_via_gemini(mini_reports: list[dict], verbose: bool = False) -> str:
-    system_prompt = types.Content(role="system", parts=[types.Part(text="You are an experienced software developer with experience in modernizing legacy systems, reducing technical debt and restoring and refining defunct projects.")])
-    user_text = "I detected issues in these files:\n\n"
+def generate_plan_via_agent(mini_reports: list[dict], verbose: bool = False) -> str:
+    system_prompt = ("You are an experienced software developer with experience in modernizing legacy systems, reducing technical debt and restoring and refining defunct projects.\n\n I detected issues in these files:\n\n")
     for rpt in mini_reports:
-        user_text += f"File: {rpt['path']}\n"
+        system_prompt += f"File: {rpt['path']}\n"
         if rpt["docstring"]:
-            user_text += f"Top docstring:\n```\n{rpt['docstring']}\n```\n"
+            system_prompt += f"Top docstring:\n```\n{rpt['docstring']}\n```\n"
         for issue in rpt["issues"]:
-            user_text += (
+            system_prompt += (
                 f"- {issue['type']} at line {issue['line']}: {issue['message']}\n"
                 f"  Context:\n```\n{issue['snippet']}\n```\n"
             )
-        user_text += "\n"
-    user_text += "Please layout a plan to fix these issues sequentially, carefully describing each step if required."
-    user = types.Content(role="user", parts=[types.Part(text=user_text)])
+        system_prompt += "\n"
+    system_prompt += "Please layout a plan to fix these issues sequentially, carefully describing each step if required."
+
+    user = types.Content(parts=[types.Part(text=system_prompt)])
     resp = client.models.generate_content(
         model="gemini-2.0-flash-001",
-        contents=[system_prompt, user]
+        contents=[user]
     )
     if verbose:
         typer.secho(f"Prompt tokens: {resp.usage_metadata.prompt_token_count}", fg="cyan")
@@ -165,7 +165,7 @@ def scan(
     for f in flagged:
         typer.echo(f"  • {f['path']}")
     mini_reports = build_mini_reports(projectdir, flagged)
-    plan = generate_plan_via_gemini(mini_reports, verbose)
+    plan = generate_plan_via_agent(mini_reports, verbose)
     typer.secho("\n=== Gemini Plan ===\n", fg="blue")
     typer.echo(plan)
 
