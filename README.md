@@ -108,4 +108,4 @@ Contributions, issues, and feature requests are welcome! Please open a GitHub is
 
 This project was a submission for the Boot.dev 2025 Hackathon: [https://blog.boot.dev/news/hackathon-2025/](https://blog.boot.dev/news/hackathon-2025/)
 
-Thanks to Boot.dev again, for organising this amazing event!
+Thanks to the entire Boot.dev team, for organising this amazing event!
